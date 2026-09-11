@@ -1,1 +1,489 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>UNO Uzbekistan</title>
 
+<style>
+*{box-sizing:border-box}
+
+body{
+margin:0;
+background:linear-gradient(135deg,#101820,#26384a);
+color:white;
+font-family:Arial,sans-serif;
+text-align:center;
+min-height:100vh
+}
+
+.box{
+max-width:680px;
+margin:auto;
+padding:16px
+}
+
+h1{margin:8px 0 16px}
+
+.panel{
+background:#ffffff12;
+border:1px solid #ffffff22;
+border-radius:20px;
+padding:18px
+}
+
+button{
+border:0;
+border-radius:11px;
+padding:11px 16px;
+margin:5px;
+font-weight:bold;
+cursor:pointer
+}
+
+button:disabled{opacity:.4}
+
+.lang button{
+font-size:18px;
+padding:13px 20px
+}
+
+.info{
+font-size:18px;
+margin:12px
+}
+
+.card{
+width:66px;
+height:96px;
+border:3px solid white;
+border-radius:13px;
+display:inline-flex;
+align-items:center;
+justify-content:center;
+font-size:25px;
+font-weight:bold;
+margin:5px;
+box-shadow:0 5px 10px #0008
+}
+
+.red{background:#e53935}
+.yellow{background:#fbc02d;color:#111}
+.green{background:#43a047}
+.blue{background:#1976d2}
+.black{background:#202124}
+
+#hand{
+display:flex;
+flex-wrap:wrap;
+justify-content:center
+}
+
+.hidden{display:none}
+
+.small{
+opacity:.75;
+font-size:14px
+}
+</style>
+</head>
+
+<body>
+
+<div class="box">
+
+<div id="language" class="panel">
+<h1>🃏 UNO</h1>
+
+<h2 id="choose">Tilni tanlang</h2>
+
+<button onclick="setLang('uz')">🇺🇿 O‘zbekcha</button>
+<button onclick="setLang('ru')">🇷🇺 Русский</button>
+</div>
+
+
+<div id="game" class="panel hidden">
+
+<h1>🃏 UNO</h1>
+
+<div class="info">
+<span id="you">Siz</span>:
+<b id="score">0</b>
+|
+<span id="opponent">Raqib</span>:
+<b id="botScore">0</b>
+</div>
+
+<p id="status"></p>
+
+<div>
+
+<button onclick="drawCard()" id="drawBtn">
+🃏 Karta olish
+</button>
+
+<button onclick="newGame()" id="newBtn">
+🔄 Yangi o‘yin
+</button>
+
+<button onclick="changeLang()" id="langBtn">
+🌐 Til
+</button>
+
+</div>
+
+<h3 id="tableText">Stoldagi karta</h3>
+
+<div id="top"></div>
+
+<h3 id="cardsText">Sizning kartalaringiz</h3>
+
+<div id="hand"></div>
+
+<p class="small" id="count"></p>
+
+</div>
+</div>
+
+
+<script>
+
+let lang="uz";
+
+const texts={
+
+uz:{
+choose:"Tilni tanlang",
+you:"Siz",
+opponent:"Raqib",
+yourTurn:"🟢 Sizning navbatingiz",
+botTurn:"🤖 Raqib o‘ynamoqda...",
+draw:"🃏 Karta olish",
+newGame:"🔄 Yangi o‘yin",
+language:"🌐 Til",
+table:"Stoldagi karta",
+cards:"Sizning kartalaringiz",
+cannot:"Bu kartani qo‘yib bo‘lmaydi!",
+youWin:"🎉 Siz yutdingiz!",
+botWin:"🤖 Raqib yutdi!",
+cardsLeft:"Raqibda {n} ta karta qoldi"
+},
+
+ru:{
+choose:"Выберите язык",
+you:"Вы",
+opponent:"Соперник",
+yourTurn:"🟢 Ваш ход",
+botTurn:"🤖 Ход соперника...",
+draw:"🃏 Взять карту",
+newGame:"🔄 Новая игра",
+language:"🌐 Язык",
+table:"Карта на столе",
+cards:"Ваши карты",
+cannot:"Эту карту нельзя положить!",
+youWin:"🎉 Вы победили!",
+botWin:"🤖 Соперник победил!",
+cardsLeft:"У соперника осталось карт: {n}"
+}
+
+};
+
+
+const colors=["red","yellow","green","blue"];
+
+const values=[
+"0","1","2","3","4","5","6","7","8","9",
+"+2","↩","⛔"
+];
+
+
+let deck=[];
+let hand=[];
+let bot=[];
+let discard=[];
+let turn="player";
+
+let score=0;
+let botScore=0;
+
+
+function t(key){
+return texts[lang][key]
+}
+
+
+function setLang(x){
+
+lang=x;
+
+document
+.getElementById("language")
+.classList.add("hidden");
+
+document
+.getElementById("game")
+.classList.remove("hidden");
+
+updateText();
+
+newGame();
+
+}
+
+
+function changeLang(){
+
+document
+.getElementById("game")
+.classList.add("hidden");
+
+document
+.getElementById("language")
+.classList.remove("hidden");
+
+document
+.getElementById("choose")
+.textContent=t("choose");
+
+}
+
+
+function updateText(){
+
+document.getElementById("choose").textContent=t("choose");
+
+document.getElementById("you").textContent=t("you");
+
+document.getElementById("opponent").textContent=t("opponent");
+
+document.getElementById("drawBtn").textContent=t("draw");
+
+document.getElementById("newBtn").textContent=t("newGame");
+
+document.getElementById("langBtn").textContent=t("language");
+
+document.getElementById("tableText").textContent=t("table");
+
+document.getElementById("cardsText").textContent=t("cards");
+
+}
+
+
+function makeDeck(){
+
+let d=[];
+
+for(let c of colors){
+
+for(let v of values)
+d.push({c:c,v:v});
+
+for(let v of values.slice(1))
+d.push({c:c,v:v});
+
+}
+
+for(let i=0;i<4;i++){
+
+d.push({c:"black",v:"+4"});
+
+d.push({c:"black",v:"★"});
+
+}
+
+return d.sort(()=>Math.random()-.5);
+
+}
+
+
+function newGame(){
+
+deck=makeDeck();
+
+hand=[];
+
+bot=[];
+
+discard=[];
+
+turn="player";
+
+for(let i=0;i<7;i++){
+
+hand.push(deck.pop());
+
+bot.push(deck.pop());
+
+}
+
+discard.push(deck.pop());
+
+render();
+
+}
+
+
+function valid(x){
+
+let top=discard[discard.length-1];
+
+return x.c===top.c ||
+x.v===top.v ||
+x.c==="black";
+
+}
+
+
+function render(){
+
+let top=discard[discard.length-1];
+
+document.getElementById("top").innerHTML=
+
+`<div class="card ${top.c}">
+${top.v}
+</div>`;
+
+
+let h=document.getElementById("hand");
+
+h.innerHTML="";
+
+
+hand.forEach((x,i)=>{
+
+let b=document.createElement("button");
+
+b.className="card "+x.c;
+
+b.textContent=x.v;
+
+b.disabled=turn!=="player";
+
+b.onclick=()=>play(i);
+
+h.appendChild(b);
+
+});
+
+
+document.getElementById("score").textContent=score;
+
+document.getElementById("botScore").textContent=botScore;
+
+document.getElementById("status").textContent=
+
+turn==="player"
+?t("yourTurn")
+:t("botTurn");
+
+
+document.getElementById("count").textContent=
+
+t("cardsLeft").replace("{n}",bot.length);
+
+}
+
+
+function play(i){
+
+if(turn!=="player")return;
+
+let x=hand[i];
+
+if(!valid(x)){
+
+alert(t("cannot"));
+
+return;
+
+}
+
+hand.splice(i,1);
+
+discard.push(x);
+
+
+if(hand.length===0){
+
+score++;
+
+alert(t("youWin"));
+
+newGame();
+
+return;
+
+}
+
+
+turn="bot";
+
+render();
+
+setTimeout(botPlay,700);
+
+}
+
+
+function drawCard(){
+
+if(turn!=="player")return;
+
+hand.push(deck.pop());
+
+turn="bot";
+
+render();
+
+setTimeout(botPlay,700);
+
+}
+
+
+function botPlay(){
+
+let i=bot.findIndex(valid);
+
+
+if(i===-1){
+
+bot.push(deck.pop());
+
+turn="player";
+
+render();
+
+return;
+
+}
+
+
+let x=bot.splice(i,1)[0];
+
+discard.push(x);
+
+
+if(bot.length===0){
+
+botScore++;
+
+alert(t("botWin"));
+
+newGame();
+
+return;
+
+}
+
+
+turn="player";
+
+render();
+
+}
+
+</script>
+
+</body>
+</html>
